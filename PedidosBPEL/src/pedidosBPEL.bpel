@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<process
+    name="pedidosBPEL"
+    targetNamespace="http://enterprise.netbeans.org/bpel/PedidosBPEL/pedidosBPEL"
+    xmlns:tns="http://enterprise.netbeans.org/bpel/PedidosBPEL/pedidosBPEL"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+    xmlns:sxt="http://www.sun.com/wsbpel/2.0/process/executable/SUNExtension/Trace" 
+    xmlns:sxed="http://www.sun.com/wsbpel/2.0/process/executable/SUNExtension/Editor2"
+    xmlns:sxat="http://www.sun.com/wsbpel/2.0/process/executable/SUNExtension/Attachment"
+    xmlns:sxeh="http://www.sun.com/wsbpel/2.0/process/executable/SUNExtension/ErrorHandling">
+    <import namespace="http://j2ee.netbeans.org/wsdl/PedidosBPEL/Descriptor/procesoPedido" location="Descriptor/procesoPedido.wsdl" importType="http://schemas.xmlsoap.org/wsdl/"/>
+    <import namespace="http://enterprise.netbeans.org/bpel/PaymentServiceWrapper" location="PaymentServiceWrapper.wsdl" importType="http://schemas.xmlsoap.org/wsdl/"/>
+    <import namespace="http://payment.company.com/" location="http://localhost:8080/OnlinePaymentCompany/PaymentService?wsdl" importType="http://schemas.xmlsoap.org/wsdl/"/>
+    <import namespace="http://enterprise.netbeans.org/bpel/StockServiceWrapper" location="StockServiceWrapper.wsdl" importType="http://schemas.xmlsoap.org/wsdl/"/>
+    <import namespace="http://shop.provider.com/" location="http://localhost:8080/ProviderShop/StockService?wsdl" importType="http://schemas.xmlsoap.org/wsdl/"/>
+    <partnerLinks>
+        <partnerLink name="PaymentService" xmlns:tns="http://enterprise.netbeans.org/bpel/PaymentServiceWrapper" partnerLinkType="tns:PaymentLinkType" partnerRole="PaymentRole"/>
+        <partnerLink name="StockService" xmlns:tns="http://enterprise.netbeans.org/bpel/StockServiceWrapper" partnerLinkType="tns:StockLinkType" partnerRole="StockRole"/>
+        <partnerLink name="ProcesoPedido" xmlns:tns="http://j2ee.netbeans.org/wsdl/PedidosBPEL/Descriptor/procesoPedido" partnerLinkType="tns:procesoPedido" myRole="procesoPedidoPortTypeRole"/>
+    </partnerLinks>
+    <variables>
+        <variable name="DispachOrderOut" xmlns:tns="http://shop.provider.com/" messageType="tns:dispachOrderResponse"/>
+        <variable name="DispachOrderIn" xmlns:tns="http://shop.provider.com/" messageType="tns:dispachOrder"/>
+        <variable name="ProcessPaymentOut" xmlns:tns="http://payment.company.com/" messageType="tns:processPaymentResponse"/>
+        <variable name="ProcessPaymentIn" xmlns:tns="http://payment.company.com/" messageType="tns:processPayment"/>
+        <variable name="CheckStockOut" xmlns:tns="http://shop.provider.com/" messageType="tns:checkStockResponse"/>
+        <variable name="CheckStockIn" xmlns:tns="http://shop.provider.com/" messageType="tns:checkStock"/>
+        <variable name="ProcesoPedidoOperationOut" xmlns:tns="http://j2ee.netbeans.org/wsdl/PedidosBPEL/Descriptor/procesoPedido" messageType="tns:procesoPedidoOperationResponse"/>
+        <variable name="ProcesoPedidoOperationOut1" xmlns:tns="http://j2ee.netbeans.org/wsdl/PedidosBPEL/Descriptor/procesoPedido" messageType="tns:procesoPedidoOperationResponse"/>
+        <variable name="ProcesoPedidoOperationIn" xmlns:tns="http://j2ee.netbeans.org/wsdl/PedidosBPEL/Descriptor/procesoPedido" messageType="tns:procesoPedidoOperationRequest"/>
+    </variables>
+    <sequence>
+        <receive name="RecibirPedido" createInstance="yes" partnerLink="ProcesoPedido" operation="procesoPedidoOperation" xmlns:tns="http://j2ee.netbeans.org/wsdl/PedidosBPEL/Descriptor/procesoPedido" portType="tns:procesoPedidoPortType" variable="ProcesoPedidoOperationIn"/>
+        <assign name="AsignarStock">
+            <copy>
+                <from variable="ProcesoPedidoOperationIn" part="idProducto"/>
+                <to>$CheckStockIn.parameters/productId</to>
+            </copy>
+            <copy>
+                <from variable="ProcesoPedidoOperationIn" part="cantidad"/>
+                <to>$CheckStockIn.parameters/amount</to>
+            </copy>
+        </assign>
+        <invoke name="ComprobarStock" partnerLink="StockService" operation="checkStock" xmlns:tns="http://shop.provider.com/" portType="tns:Stock" inputVariable="CheckStockIn" outputVariable="CheckStockOut"/>
+        <if name="SiHayStock">
+            <condition>$CheckStockOut.parameters/return &gt;= 0</condition>
+            <sequence name="HayStock">
+                <assign name="AsignarPedido">
+                    <copy>
+                        <from>$CheckStockOut.parameters/return</from>
+                        <to>$ProcessPaymentIn.parameters/orderNo</to>
+                    </copy>
+                    <copy>
+                        <from variable="ProcesoPedidoOperationIn" part="idCliente"/>
+                        <to>$ProcessPaymentIn.parameters/clientId</to>
+                    </copy>
+                    <copy>
+                        <from>$ProcesoPedidoOperationIn.cantidad * $ProcesoPedidoOperationIn.precio</from>
+                        <to>$ProcessPaymentIn.parameters/amount</to>
+                    </copy>
+                </assign>
+                <invoke name="Pagar" partnerLink="PaymentService" operation="processPayment" xmlns:tns="http://payment.company.com/" portType="tns:Payment" inputVariable="ProcessPaymentIn" outputVariable="ProcessPaymentOut"/>
+                <assign name="AsignarEnvio">
+                    <copy>
+                        <from>$ProcessPaymentOut.parameters/return</from>
+                        <to>$DispachOrderIn.parameters/paymentReceipt</to>
+                    </copy>
+                    <copy>
+                        <from>$CheckStockOut.parameters/return</from>
+                        <to>$DispachOrderIn.parameters/orderNo</to>
+                    </copy>
+                </assign>
+                <invoke name="TramitarEnvio" partnerLink="StockService" operation="dispachOrder" xmlns:tns="http://shop.provider.com/" portType="tns:Stock" inputVariable="DispachOrderIn" outputVariable="DispachOrderOut"/>
+            </sequence>
+            <else>
+                <sequence name="Sequence1">
+                    <assign name="AsignarNoStock">
+                        <copy>
+                            <from>"'No hay stock sufiente"</from>
+                            <to variable="ProcesoPedidoOperationOut" part="part1"/>
+                        </copy>
+                    </assign>
+                    <reply name="RespuestaNoStock" partnerLink="ProcesoPedido" operation="procesoPedidoOperation" xmlns:tns="http://j2ee.netbeans.org/wsdl/PedidosBPEL/Descriptor/procesoPedido" portType="tns:procesoPedidoPortType" variable="ProcesoPedidoOperationOut"/>
+                </sequence>
+            </else>
+        </if>
+        <assign name="AsignarRespuestaOK">
+            <copy>
+                <from>concat('La referencia de la factura es', $ProcessPaymentOut.parameters/return, ' y la referencia del envio es ', $DispachOrderOut.parameters/return)</from>
+                <to variable="ProcesoPedidoOperationOut1" part="part1"/>
+            </copy>
+        </assign>
+        <reply name="RespuestaOK" partnerLink="ProcesoPedido" operation="procesoPedidoOperation" xmlns:tns="http://j2ee.netbeans.org/wsdl/PedidosBPEL/Descriptor/procesoPedido" portType="tns:procesoPedidoPortType" variable="ProcesoPedidoOperationOut1"/>
+    </sequence>
+</process>

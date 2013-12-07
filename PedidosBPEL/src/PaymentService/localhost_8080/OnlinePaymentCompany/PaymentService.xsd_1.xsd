@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='UTF-8'?><!-- Published by JAX-WS RI at http://jax-ws.dev.java.net. RI's version is Metro/2.1.1 (branches/2.1-6844; 2011-07-29T12:07:24+0000) JAXWS-RI/2.2.5 JAXWS/2.2. --><xs:schema xmlns:tns="http://payment.company.com/" xmlns:xs="http://www.w3.org/2001/XMLSchema" version="1.0" targetNamespace="http://payment.company.com/">
+
+<xs:element name="processPayment" type="tns:processPayment"/>
+
+<xs:element name="processPaymentResponse" type="tns:processPaymentResponse"/>
+
+<xs:complexType name="processPayment">
+<xs:sequence>
+<xs:element name="clientId" type="xs:string" minOccurs="0"/>
+<xs:element name="amount" type="xs:double"/>
+<xs:element name="orderNo" type="xs:int"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="processPaymentResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:schema>

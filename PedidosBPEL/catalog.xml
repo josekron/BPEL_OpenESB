@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog" prefer="system">
+    <nextCatalog catalog="nbproject/private/retriever/catalog.xml"/>
+    <system systemId="http://localhost:8080/OnlinePaymentCompany/PaymentService?wsdl" uri="src/PaymentService/localhost_8080/OnlinePaymentCompany/PaymentService.wsdl"/>
+    <system systemId="http://localhost:8080/OnlinePaymentCompany/PaymentService?xsd=1" uri="src/PaymentService/localhost_8080/OnlinePaymentCompany/PaymentService.xsd_1.xsd"/>
+    <system systemId="http://localhost:8080/ProviderShop/StockService?wsdl" uri="src/StockService/localhost_8080/ProviderShop/StockService.wsdl"/>
+    <system systemId="http://localhost:8080/ProviderShop/StockService?xsd=1" uri="src/StockService/localhost_8080/ProviderShop/StockService.xsd_1.xsd"/>
+</catalog>
